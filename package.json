@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "chart.js": "^4.5.0",
+    "jimp": "^1.6.0"
+  }
+}

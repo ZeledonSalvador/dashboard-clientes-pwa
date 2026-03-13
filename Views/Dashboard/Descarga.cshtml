@@ -1,0 +1,172 @@
+@{
+    ViewData["Title"] = "Dashboard - Diario";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+<link rel="stylesheet" href="~/css/dashboard.css" />
+<link rel="stylesheet" href="~/css/site.css" />
+
+@await Html.PartialAsync("_DashSwitcher")
+ <!-- Spinner overlay (componente compartido) -->
+@await Html.PartialAsync("_Spinner")
+
+<div class="dash-wrapper" style="font-family: 'Gilroy-Bold', sans-serif;">
+    <!-- KPIs -->
+    <aside class="kpi-panel">
+        <div class="kpi">
+            <div class="kpi-value" id="kpi-cant-azucar">0</div>
+            <div class="kpi-label">Unidades descargadas por hora (Azúcar)</div>
+        </div>
+        <div class="kpi">
+            <div class="kpi-value" id="kpi-cant-melaza">0</div>
+            <div class="kpi-label">Unidades descargadas por hora (Melaza)</div>
+        </div>
+
+        <div class="kpi">
+            <div class="kpi-value" id="kpi-transito-azucar">0 min 00 seg</div>
+            <div class="kpi-label">Tiempo promedio a planta (Azúcar)</div>
+        </div>
+        <div class="kpi">
+            <div class="kpi-value" id="kpi-transito-melaza">0 min 00 seg</div>
+            <div class="kpi-label">Tiempo promedio a planta (Melaza)</div>
+        </div>
+
+        <div class="kpi">
+            <div class="kpi-value" id="kpi-espera-plana">0 min 00 seg</div>
+            <div class="kpi-label">Promedio de espera (Plana)</div>
+        </div>
+        <div class="kpi">
+            <div class="kpi-value" id="kpi-espera-volteo">0 min 00 seg</div>
+            <div class="kpi-label">Promedio de espera (Volteo)</div>
+        </div>
+        <div class="kpi">
+            <div class="kpi-value" id="kpi-espera-pipa">0 min 00 seg</div>
+            <div class="kpi-label">Promedio de espera (Pipa)</div>
+        </div>
+
+        <div class="kpi">
+            <div class="kpi-value" id="kpi-descarga-plana">0 min 00 seg</div>
+            <div class="kpi-label">Tiempo promedio de descarga (Plana)</div>
+        </div>
+        <div class="kpi">
+            <div class="kpi-value" id="kpi-descarga-volteo">0 min 00 seg</div>
+            <div class="kpi-label">Tiempo promedio de descarga (Volteo)</div>
+        </div>
+        <div class="kpi">
+            <div class="kpi-value" id="kpi-descarga-pipa">0 min 00 seg</div>
+            <div class="kpi-label">Tiempo promedio de descarga (Pipa)</div>
+        </div>
+    </aside>
+
+    <!-- Filtros -->
+    <main class="main-panel">
+        <div class="filters">
+            <div class="filter">
+                <label>Hora</label>
+                <div class="date-range time-range">
+                    <select id="f-hour-start"></select>
+                    <span>–</span>
+                    <select id="f-hour-end"></select>
+                </div>
+            </div>
+
+            <div class="filter">
+                <label>Ingenio</label>
+                @await Html.PartialAsync("_IngenioSelect")
+            </div>
+
+            <div class="filter">
+                <label>Producto</label>
+                <select id="f-producto">
+                    <option value="" selected>Todos</option>
+                    <option value="AZ-001">Azúcar</option>
+                    <option value="MEL-001">Melaza</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Gráficos: uno por fila -->
+        <!-- fuerza 1 columna -->
+        <div class="charts-grid--single one-col" style="font-family:'Gilroy-Bold',sans-serif;">
+
+            <section class="chart-card">
+                <header>Tiempo tránsito planta<br></header>
+                <div class="chart-scroll chart-scrollH">
+                    <div class="chart-inner">
+                        <canvas id="chart-transito-placa"></canvas>
+                    </div>
+                </div>
+                <div class="legend"><span class="legend-title">Producto:</span>
+                    <b class="dot dot-orange"></b> Azúcar
+                    <b class="dot dot-blue"></b> Melaza
+                </div>
+            </section>
+
+            <section class="chart-card">
+                <header>Tiempo de espera<br></header>
+                <div class="chart-scroll chart-scrollH">
+                    <div class="chart-inner">
+                        <canvas id="chart-espera-placa"></canvas>
+                    </div>
+                </div>
+                <div class="legend"><span class="legend-title">Tipo Camión:</span> <b class="dot dot-orange"></b> Plana
+                    <b class="dot dot-blue"></b> Volteo
+                    <b class="dot dot-black"></b> Pipa
+                </div>
+            </section>
+
+            <section class="chart-card">
+                <header>Tiempo de descarga<br></header>
+                <div class="chart-scroll chart-scrollH">
+                    <div class="chart-inner">
+                        <canvas id="chart-descarga-placa"></canvas>
+                    </div>
+                </div>
+                <div class="legend"><span class="legend-title">Tipo Camión:</span> <b class="dot dot-orange"></b> Plana
+                    <b class="dot dot-blue"></b> Volteo <b class="dot dot-black"></b> Pipa
+                </div>
+            </section>
+
+
+
+        </div>
+
+    </main>
+</div>
+@section Scripts {
+    <script>
+        (function () {
+            const s1 = document.getElementById("f-hour-start");
+            const s2 = document.getElementById("f-hour-end");
+            if (!s1 || !s2) return;
+
+            const mkOpt = (h) => {
+                const hh = String(h).padStart(2, "0");
+                const o = document.createElement("option");
+                o.value = `${hh}:00`;
+                o.textContent = hh;
+                return o;
+            };
+
+            for (let h = 0; h <= 23; h++) {
+                s1.appendChild(mkOpt(h));
+                s2.appendChild(mkOpt(h));
+            }
+
+            // defaults
+            s1.value = "00:00";
+            s2.value = "23:00";
+
+            // (opcional) asegurar rango válido
+            const clamp = () => {
+                const a = Number((s1.value || "00:00").split(":")[0]);
+                const b = Number((s2.value || "23:00").split(":")[0]);
+                if (a > b) s2.value = s1.value; // o si prefieres: intercambiar
+            };
+            s1.addEventListener("change", clamp);
+            s2.addEventListener("change", clamp);
+        })();
+    </script>
+    <script src="~/js/dash-core.js?v=20250828"></script>
+    <script src="~/js/dash-placas.js?v=20250828"></script>
+}
+}

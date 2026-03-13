@@ -1,0 +1,19 @@
+@{
+    ViewData["Title"] = "Hoy";   // corto, día actual
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@section Styles {
+  <link rel="stylesheet" href="~/css/dashboard.css" asp-append-version="true" />
+  <link rel="stylesheet" href="~/css/site.css" />
+}
+
+@await Html.PartialAsync("_DashboardContent")
+@await Html.PartialAsync("_DashSwitcher")
+<!-- Spinner overlay (componente compartido) -->
+@await Html.PartialAsync("_Spinner")
+
+@section Scripts {
+    <script src="~/js/dash-core.js?v=20250828"></script>
+    <script src="~/js/dash-hoy-horas.js?v=20260302"></script>
+}

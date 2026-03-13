@@ -1,0 +1,75 @@
+@{
+    // Robustly convert ViewBag.IngeniosPermitidos to a list of simple pairs (Value,Text)
+    var raw = ViewBag.IngeniosPermitidos;
+    var ingenios = new List<(string Value, string Text)>();
+
+    if (raw is IEnumerable<FrontendQuickpass.Controllers.IngenioOption> typedList)
+    {
+        foreach (var it in typedList)
+        {
+            ingenios.Add((it.Value ?? "", it.Text ?? ""));
+        }
+    }
+    else if (raw is System.Collections.IEnumerable enumObj)
+    {
+        foreach (var item in enumObj)
+        {
+            if (item == null) continue;
+
+            // try IDictionary access (expando/dynamic)
+            var asDict = item as IDictionary<string, object>;
+            if (asDict != null)
+            {
+                var v = asDict.ContainsKey("Value") ? (asDict["Value"]?.ToString() ?? "") : "";
+                var t = asDict.ContainsKey("Text") ? (asDict["Text"]?.ToString() ?? "") : "";
+                ingenios.Add((v, t));
+                continue;
+            }
+
+            // fallback to reflection
+            try
+            {
+                var type = item.GetType();
+                var pv = type.GetProperty("Value");
+                var pt = type.GetProperty("Text");
+                var v = pv != null ? pv.GetValue(item)?.ToString() ?? "" : "";
+                var t = pt != null ? pt.GetValue(item)?.ToString() ?? "" : "";
+                ingenios.Add((v, t));
+            }
+            catch { /* ignore malformed items */ }
+        }
+    }
+
+    var isCliente = ingenios.Count == 1;
+    var selectedValue = isCliente && ingenios.Any() ? ingenios.First().Value : "";
+}
+
+@if (isCliente)
+{
+    // Cliente: no mostrar select, solo hidden input para que el JS siga filtrando
+    <input type="hidden" id="f-ingenio-hidden" value="@selectedValue" />
+    <script>
+        // Ocultar Ingenio y forzar 3 columnas explícitas:
+        // Fecha→col1, Producto→col2, col3 vacía a la derecha (no en medio)
+        // Cada filtro visible mantiene exactamente 1/3 del ancho del panel
+        (function(){
+            var hid = document.getElementById('f-ingenio-hidden');
+            if (hid) {
+                var p = hid.closest('.filter');
+                var g = hid.closest('.filters');
+                if (p) p.style.display = 'none';
+                if (g) g.style.gridTemplateColumns = 'repeat(3, 1fr)';
+            }
+        })();
+    </script>
+}
+else
+{
+    <select id="f-ingenio" data-count="@ingenios.Count">
+        <option value="">Todos</option>
+        @foreach (var ingenio in ingenios)
+        {
+            <option value="@ingenio.Value">@ingenio.Text</option>
+        }
+    </select>
+}

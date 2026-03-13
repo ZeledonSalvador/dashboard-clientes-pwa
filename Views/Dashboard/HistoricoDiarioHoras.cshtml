@@ -1,0 +1,171 @@
+@{
+    ViewData["Title"] = "Histórico - Diario (Horas)";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    <meta name="dash-api-base" content="http://localhost:3000">
+
+}
+
+@section Styles {
+  <link rel="stylesheet" href="~/css/dashboard.css" asp-append-version="true" />
+  <link rel="stylesheet" href="~/css/site.css" />
+}
+
+@await Html.PartialAsync("_DashSwitcher")
+<!-- Spinner overlay (componente compartido) -->
+@await Html.PartialAsync("_Spinner")
+
+<div class="dash-wrapper">
+  <!-- Lado izquierdo: KPIs -->
+  <aside class="kpi-panel">
+    <div class="kpi">
+      <div class="kpi-value" id="kpi-camiones-recibidos" style="font-family: 'Gilroy-Bold', sans-serif;">0</div>
+      <div class="kpi-label" style="font-family: 'Gilroy-Bold', sans-serif;">Camiones Recibidos</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-value" id="kpi-camiones-finalizados" style="font-family: 'Gilroy-Bold', sans-serif;">0</div>
+      <div class="kpi-label">Camiones Finalizados</div>
+    </div>
+
+    <div class="kpi">
+      <div class="kpi-value" id="kpi-tiempo-promedio-espera" style="font-family: 'Gilroy-Bold', sans-serif;">00 h 00 min</div>
+      <div class="kpi-label" style="font-family: 'Gilroy-Bold', sans-serif;">Tiempo Promedio de Espera</div>
+    </div>
+
+    <div class="kpi">
+      <div class="kpi-value" id="kpi-tiempo-promedio-atencion" style="font-family: 'Gilroy-Bold', sans-serif;">00 h 00 min</div>
+      <div class="kpi-label" style="font-family: 'Gilroy-Bold', sans-serif;">Tiempo Promedio de Atención</div>
+    </div>
+
+    <div class="kpi">
+      <div class="kpi-value" id="kpi-cantidad-dia-Az" style="font-family: 'Gilroy-Bold', sans-serif;">0 Ton</div>
+      <div class="kpi-label" style="font-family: 'Gilroy-Bold', sans-serif;">Flujo Por Día (Azúcar)</div>
+    </div>
+
+    <div class="kpi">
+      <div class="kpi-value" id="kpi-flujo-dia-Az" style="font-family: 'Gilroy-Bold', sans-serif;">0 Ton</div>
+      <div class="kpi-label" style="font-family: 'Gilroy-Bold', sans-serif;">Flujo Por Hora (Azúcar)</div>
+    </div>
+
+    <div class="kpi">
+      <div class="kpi-value" id="kpi-cantidad-dia-Mel" style="font-family: 'Gilroy-Bold', sans-serif;">0 Ton</div>
+      <div class="kpi-label" style="font-family: 'Gilroy-Bold', sans-serif;">Flujo Por Día (Melaza)</div>
+    </div>
+
+    <div class="kpi">
+      <div class="kpi-value" id="kpi-flujo-dia-Mel" style="font-family: 'Gilroy-Bold', sans-serif;">0 Ton</div>
+      <div class="kpi-label" style="font-family: 'Gilroy-Bold', sans-serif;">Flujo Por Hora (Melaza)</div>
+    </div>
+
+    <div class="kpi">
+      <div class="kpi-value" id="kpi-prom-planas" style="font-family: 'Gilroy-Bold', sans-serif;">0 min 00 seg</div>
+      <div class="kpi-label" style="font-family: 'Gilroy-Bold', sans-serif; font-size:12px;">Promedio de Descarga (Planas)</div>
+    </div>
+
+    <div class="kpi">
+      <div class="kpi-value" id="kpi-prom-volteo" style="font-family: 'Gilroy-Bold', sans-serif;">0 min 00 seg</div>
+      <div class="kpi-label" style="font-family: 'Gilroy-Bold', sans-serif; font-size:12px;">Promedio de Descarga (Volteo)</div>
+    </div>
+
+    <div class="kpi">
+      <div class="kpi-value" id="kpi-prom-pipa" style="font-family: 'Gilroy-Bold', sans-serif;">0 min 00 seg</div>
+      <div class="kpi-label" style="font-family: 'Gilroy-Bold', sans-serif;">Promedio de Descarga (Pipa)</div>
+    </div>
+  </aside>
+
+  <!-- Lado derecho: filtros + charts -->
+  <main class="main-panel">
+
+    <div class="filters">
+      <div class="filter">
+        <label>Fecha</label>
+        <input type="date" id="f-fecha" />
+      </div>
+
+      <div class="filter">
+        <label>Hora</label>
+            <div class="date-range time-range">
+                <select id="f-hour-start"></select>
+                <span>–</span>
+                <select id="f-hour-end"></select>
+            </div>
+        </div>
+
+      <div class="filter">
+        <label>Ingenio</label>
+        @await Html.PartialAsync("_IngenioSelect")
+      </div>
+
+      <div class="filter">
+        <label>Producto</label>
+        <select id="f-producto">
+          <option value="" selected>Todos</option>
+          <option value="AZ-001">Azúcar</option>
+          <option value="MEL-001">Melaza</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="charts-grid">
+      <section class="chart-card" style="font-family: 'Gilroy-Bold', sans-serif;">
+        <header>Camiones Finalizados</header>
+        <div class="chart-scroll">
+            <div class="chart-inner">
+                <canvas id="chart-finalizados"></canvas>
+            </div>
+        </div>
+        <div class="legend">Tipo Camión:
+          <p class="dot dot-blue"></p> Volteo
+          <p class="dot dot-orange"></p> Plana
+          <p class="dot dot-black"></p> Pipa
+        </div>
+      </section>
+
+      <section class="chart-card" style="font-family: 'Gilroy-Bold', sans-serif;">
+        <header>Camiones Recibidos</header>
+        <div class="chart-scroll">
+            <div class="chart-inner">
+                <canvas id="chart-recibidos"></canvas>
+            </div>
+        </div>
+        <div class="legend">Tipo Camión:
+          <b class="dot dot-blue"></b> Volteo
+          <b class="dot dot-orange"></b> Plana
+          <b class="dot dot-black"></b> Pipa
+        </div>
+      </section>
+
+      <section class="chart-card" style="font-family: 'Gilroy-Bold', sans-serif;">
+        <header>Cantidad Recibida</header>
+        <div class="chart-scroll">
+            <div class="chart-inner">
+                <canvas id="chart-azucar"></canvas>
+            </div>
+        </div>
+        <div class="legend">Producto:
+          <b class="dot dot-orange"></b> Azúcar
+          <b class="dot dot-blue"></b> Melaza
+        </div>
+      </section>
+
+      <section class="chart-card" style="font-family: 'Gilroy-Bold', sans-serif;">
+        <header>Promedio de Descarga</header>
+        <div class="chart-scroll">
+            <div class="chart-inner">
+                <canvas id="chart-promedio"></canvas>
+            </div>
+        </div>  
+        <div class="legend">Tipo Camión:
+          <b class="dot dot-blue"></b> Volteo
+          <b class="dot dot-orange"></b> Plana
+          <b class="dot dot-black"></b> Pipa
+        </div>
+      </section>
+    </div>
+
+  </main>
+</div>
+
+@section Scripts {
+  <script src="~/js/dash-core.js?v=20250828"></script>
+  <script src="~/js/dash-historico-diario-horas.js?v=20260115"></script>
+}

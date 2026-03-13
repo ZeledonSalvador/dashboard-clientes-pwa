@@ -1,0 +1,141 @@
+@{
+    ViewData["Title"] = "Dashboard";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/dashboard.css" />
+    <link rel="stylesheet" href="~/css/site.css" />
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.4.2/css/all.css"
+        integrity="sha384-/rXc/GQVaYpyDdyxK+ecHPVYJSN9bmVFBvjA/9eOB+pb3F2w2N6fc5qB9Ew5yIns" crossorigin="anonymous" />
+}
+
+@await Html.PartialAsync("_DashSwitcher")
+<!-- Spinner overlay (componente compartido) -->
+@await Html.PartialAsync("_Spinner")
+
+<div class="dash-wrapper">
+    <!-- Lado izquierdo: KPIs -->
+    <aside class="kpi-panel">
+        <div class="kpi">
+            <div class="kpi-value" id="kpi-cant-az" style="font-family: 'Gilroy-Bold', sans-serif;">0 Ton</div>
+            <div class="kpi-label" style="font-family: 'Gilroy-Bold', sans-serif;">Cantidad Recibida de Azúcar</div>
+        </div>
+        <div class="kpi">
+            <div class="kpi-value" id="kpi-cant-mel" style="font-family: 'Gilroy-Bold', sans-serif;">0 Ton</div>
+            <div class="kpi-label">Cantidad Recibida de Melaza</div>
+        </div>
+        <div class="kpi">
+            <div class="kpi-value" id="kpi-cant-volteo" style="font-family: 'Gilroy-Bold', sans-serif;">0 Ton</div>
+            <div class="kpi-label" style="font-family: 'Gilroy-Bold', sans-serif;">Cantidad Recibida (Volteo)</div>
+        </div>
+
+        <div class="kpi">
+            <div class="kpi-value" id="kpi-cant-planas" style="font-family: 'Gilroy-Bold', sans-serif;">0 Ton</div>
+            <div class="kpi-label" style="font-family: 'Gilroy-Bold', sans-serif;">Cantidad Recibida (Planas)</div>
+        </div>
+
+        <div class="kpi">
+            <div class="kpi-value" id="kpi-prom-humedad" style="font-family: 'Gilroy-Bold', sans-serif;">0 %</div>
+            <div class="kpi-label" style="font-family: 'Gilroy-Bold', sans-serif;">Promedio de Humedad</div>
+        </div>
+        <div class="kpi">
+            <div class="kpi-value" id="kpi-prom-brix" style="font-family: 'Gilroy-Bold', sans-serif;">0 °Bx</div>
+            <div class="kpi-label" style="font-family: 'Gilroy-Bold', sans-serif; font-size:12px;">Promedio de Brix</div>
+        </div>
+        <div class="kpi">
+            <div class="kpi-value" id="kpi-prom-temperatura" style="font-family: 'Gilroy-Bold', sans-serif;">0 °C</div>
+            <div class="kpi-label" style="font-family: 'Gilroy-Bold', sans-serif; font-size:12px;">Promedio de Temperatura</div>
+        </div>
+    </aside>
+
+    <!-- Lado derecho: filtros + charts -->
+    <main class="main-panel">
+        <!-- Filtros -->
+        <div class="filters">
+            <div class="filter">
+                <label for="f-date-start">Fecha</label>
+                <div class="date-range">
+                    <input type="date" id="f-desde" />
+                    <span>–</span>
+                    <input type="date" id="f-hasta" />
+                </div>
+            </div>
+
+            <div class="filter">
+                <label>Ingenio</label>
+                @await Html.PartialAsync("_IngenioSelect")
+            </div>
+
+            <div class="filter">
+                <label>Producto</label>
+                <select id="f-producto">
+                    <option value="" selected>Todos</option>
+                    <option value="AZ-001">Azúcar</option>
+                    <option value="MEL-001">Melaza</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Charts 2×2 -->
+        <div class="charts-grid">
+            <section class="chart-card" style="font-family: 'Gilroy-Bold', sans-serif;">
+                <header>Cantidad Recibida</header>
+                <div class="chart-scroll">
+                    <div class="chart-inner">
+                        <canvas id="chart-total-kg"></canvas>
+                    </div>
+                </div>
+                <div class="legend">Producto:
+                    <b class="dot dot-orange"></b> Azúcar
+                    <b class="dot dot-blue"></b> Melaza
+                </div>
+            </section>
+
+            <section class="chart-card" style="font-family: 'Gilroy-Bold', sans-serif;">
+                <header>Cantidad Recibida Por Tipo de Camión</span>
+                </header>
+                <div class="chart-scroll">
+                    <div class="chart-inner">
+                        <canvas id="chart-kg-por-tipo"></canvas>
+                    </div>
+                </div>
+                <div class="legend">Tipo Camión:
+                    <b class="dot dot-blue"></b> Volteo
+                    <b class="dot dot-orange"></b> Plana
+                    <b class="dot dot-black"></b> Pipa
+                </div>
+            </section>
+
+            <section class="chart-card" style="font-family: 'Gilroy-Bold', sans-serif;">
+                <header>Promedio de Temperatura y Brix</header>
+                <div class="chart-scroll">
+                    <div class="chart-inner">
+                        <canvas id="chart-prom-brix"></canvas>
+                    </div>
+                </div>
+                <div class="legend">
+                    <b class="dot dot-orange"></b> Brix
+                    <b class="dot dot-blue"></b> Temperatura
+                </div>
+            </section>
+
+            <section class="chart-card" style="font-family: 'Gilroy-Bold', sans-serif;">
+                <header>Promedio de Humedad</header>
+                <div class="chart-scroll">
+                    <div class="chart-inner">
+                        <canvas id="chart-prom-humedad"></canvas>
+                    </div>
+                </div>
+                <div class="legend">
+                    <b class="dot dot-blue"></b> Humedad 
+                </div>
+            </section>
+        </div>
+    </main>
+</div>
+
+@section Scripts {
+    <script src="~/js/dash-core.js?v=20250828"></script>
+    <script src="~/js/dash-historico-pesos.js?v=20250828"></script>
+}

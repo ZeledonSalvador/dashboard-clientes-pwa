@@ -1,0 +1,132 @@
+@using Microsoft.Extensions.Configuration
+@inject IConfiguration _config
+@inject FrontendQuickpass.Services.LoginService _loginService
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>@ViewData["Title"] - Almapac</title>
+    <link rel="icon" type="image/x-icon" href="~/favicon.ico" />
+    <!-- PWA -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="theme-color" content="#FD7304" />
+    <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Quickpass" />
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="/lib/bootstrap/4.0.0/css/bootstrap.min.css">
+    <!-- Font Awesome 6.1.0 -->
+    <link rel="stylesheet" href="/lib/fontawesome/6.1.0/css/all.min.css">
+    <!-- Tipo de letra -->
+    <link rel="stylesheet" href="/lib/fonts/gilroy/gilroy.css">
+    <link rel="stylesheet" href="/lib/fonts/poppins/poppins.css">
+    
+    <link rel="stylesheet" href="~/css/site.css" />
+    <!-- CSS personalizado de cada página -->
+    @RenderSection("Styles", required: false)
+</head>
+<body>
+    <!-- Header Compartido -->
+    @await Html.PartialAsync("_Header")
+
+    <!-- Contenido específico de cada página -->
+    <div class="flex-grow">
+        @RenderBody()
+    </div>
+
+    <!-- Footer Compartido -->
+    @await Html.PartialAsync("_Footer")
+
+    <!-- Spinner overlay (componente compartido) -->
+    @await Html.PartialAsync("_Spinner")
+
+    <!-- Scripts necesarios de Bootstrap y jQuery -->
+    <script src="/lib/jquery/3.6.0/jquery.min.js"></script>
+    <script src="/lib/popper.js/1.12.9/popper.min.js"></script>
+    <script src="/lib/bootstrap/4.0.0/js/bootstrap.min.js"></script>
+
+    <!-- SweetAlert2 -->
+    <script src="/lib/sweetalert2/11.4.10/sweetalert2.all.min.js"></script>
+
+    <script src="~/js/site.js"></script>
+
+    <script src="/lib/chart.js/4.5.1/chart.umd.min.js"></script>
+    <script src="/lib/chartjs-plugin-zoom/2.2.0/chartjs-plugin-zoom.min.js"></script>
+    <script>
+        // Registrar el plugin de zoom/pan cuando se carga por CDN
+        (function () {
+            const zoomPlugin = window['chartjs-plugin-zoom'] || window.ChartZoom;
+            if (zoomPlugin) Chart.register(zoomPlugin);
+        })();
+    </script>
+
+    <!-- 🔐 Helper de permisos global (carga datos desde servidor) -->
+    <script src="~/js/permission-helper.js"></script>
+
+    <!-- Función de navegación con persistencia -->
+    <script>
+        // Función para navegar respetando la preferencia de pestaña
+        function navigateWithTabPreference(event, azucarUrl, melazaUrl) {
+            event.preventDefault();
+            
+            // Obtener preferencia guardada
+            const selectedTab = window.TabPersistence ? 
+                               window.TabPersistence.getSelectedTab() : 
+                               'azucar';
+            
+            // Decidir URL según preferencia
+            const targetUrl = selectedTab === 'melaza' ? melazaUrl : azucarUrl;
+            
+            console.log('Navegando con preferencia:', selectedTab, '→', targetUrl);
+            
+            // Navegar
+            window.location.href = targetUrl;
+            
+            return false;
+        }
+    </script>
+
+    <!-- Scripts específicos de cada página -->
+    @await RenderSectionAsync("Scripts", required: false)
+
+    @{
+        var clarityKey = _config["Analytics:ClarityKey"];
+        var _authCookie = Context.Request.Cookies[FrontendQuickpass.Helpers.CookieHelper.AUTH_COOKIE_NAME] ?? "";
+        var _tokenInfo = !string.IsNullOrEmpty(_authCookie) ? _loginService.ValidarToken(_authCookie) : null;
+        var _clarityClientCode = (_tokenInfo?.EsValido == true && !string.IsNullOrEmpty(_tokenInfo.ClientCode)) ? _tokenInfo.ClientCode : "";
+        var _clarityRol = (_tokenInfo?.EsValido == true) ? _tokenInfo.NombreRol : "";
+        var _clarityUserId = (_tokenInfo?.EsValido == true && _tokenInfo.CodUsuario > 0) ? _tokenInfo.CodUsuario.ToString() : "";
+
+        var _clarityTags = new System.Text.StringBuilder();
+        if (!string.IsNullOrEmpty(_clarityUserId))
+            _clarityTags.AppendLine($"clarity(\"identify\", \"user-{_clarityUserId}\");");
+        if (!string.IsNullOrEmpty(_clarityClientCode))
+            _clarityTags.AppendLine($"clarity(\"set\", \"cliente\", \"{_clarityClientCode}\");");
+        if (!string.IsNullOrEmpty(_clarityRol))
+            _clarityTags.AppendLine($"clarity(\"set\", \"rol\", \"{_clarityRol}\");");
+    }
+    @if (!string.IsNullOrWhiteSpace(clarityKey))
+    {
+        <!-- Microsoft Clarity -->
+        <script type="text/javascript">
+            (function(c,l,a,r,i,t,y){
+                c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+                t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+                y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+            })(window, document, "clarity", "script", "@clarityKey");
+            @Html.Raw(_clarityTags.ToString())
+        </script>
+    }
+    <!-- Registro del Service Worker (PWA) -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function () {
+                navigator.serviceWorker.register('/service-worker.js', { updateViaCache: 'none' });
+            });
+        }
+    </script>
+</body>
+</html>

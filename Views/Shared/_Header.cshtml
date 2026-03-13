@@ -1,0 +1,229 @@
+@using FrontendQuickpass.Services
+@using FrontendQuickpass.Helpers
+@inject LoginService _loginService
+
+@{
+    // Obtener datos del TOKEN JWT
+    string tokenSesion = Context.Request.Cookies[CookieHelper.AUTH_COOKIE_NAME] ?? string.Empty;
+    bool isLoggedIn = !string.IsNullOrEmpty(tokenSesion);
+    string username = string.Empty;
+    string fullName = string.Empty;
+
+    if (isLoggedIn)
+    {
+        try
+        {
+            var tokenInfo = _loginService.ValidarToken(tokenSesion);
+            if (tokenInfo.EsValido)
+            {
+                username = tokenInfo.Username;
+                fullName = tokenInfo.FullName ?? tokenInfo.Username;
+            }
+            else
+            {
+                isLoggedIn = false;
+            }
+        }
+        catch
+        {
+            isLoggedIn = false;
+        }
+    }
+
+    // Verificar si estamos en Dashboard
+    string currentPath = Context.Request.Path.Value?.ToLower() ?? "";
+    bool isDashboard = currentPath.StartsWith("/dashboard");
+}
+
+<header class="header">
+  <!-- DESKTOP HEADER (≥1025px) -->
+  <div class="desktop-header container-fluid d-none d-lg-flex justify-content-between align-items-center">
+    <!-- Logo -->
+    <a href="/Dashboard" class="logo">
+      <img src="~/assets/almapac.png" alt="Almapac Logo">
+    </a>
+
+    <!-- Login/Logout -->
+    <div class="d-flex align-items-center">
+      @if (isLoggedIn)
+      {
+        <a href="/Logout" class="login-button d-none d-sm-flex">
+          <i class="fas fa-sign-out-alt"></i><span>Cerrar Sesión</span>
+        </a>
+      }
+      else
+      {
+        <a href="/Login" class="login-button d-none d-sm-flex">
+          <i class="fas fa-user"></i><span>Iniciar Sesión</span>
+        </a>
+      }
+    </div>
+  </div>
+
+  <!-- MOBILE/TABLET HEADER (<1025px) -->
+  <div class="mobile-header container-fluid d-flex d-lg-none justify-content-between align-items-center p-0">
+    <a href="/Dashboard" class="logo">
+      <img src="~/assets/almapac.png" alt="Almapac Logo">
+    </a>
+    
+    <div class="d-flex align-items-center">
+      @if (isLoggedIn)
+      {
+        <button id="menu-toggle" type="button" aria-label="Toggle Menu" aria-expanded="false">
+          <i class="fas fa-bars"></i>
+        </button>
+      }
+      else
+      {
+        <a href="/Login" class="login-button-mobile">
+          <i class="fas fa-user"></i>
+          <span class="login-text">Iniciar Sesión</span>
+        </a>
+      }
+    </div>
+  </div>
+</header>
+
+<!-- Banner de instalación PWA — oculto por defecto, gestionado por site.js -->
+<div id="install-banner"
+     role="status"
+     style="display:none;
+            width:100%;
+            background:#FD7304;
+            color:#fff;
+            text-align:center;
+            padding:7px 16px;
+            font-size:0.82rem;
+            font-weight:600;
+            letter-spacing:0.03em;
+            z-index:1049;
+            box-shadow:0 2px 4px rgba(0,0,0,0.2);
+            position:relative;">
+    <i class="fas fa-download" style="margin-right:6px;"></i>
+    Instala Quickpass para acceso rápido desde tu dispositivo
+    <button id="install-btn"
+            style="margin-left:14px;
+                   background:#fff;
+                   color:#FD7304;
+                   border:none;
+                   border-radius:4px;
+                   padding:3px 12px;
+                   font-size:0.8rem;
+                   font-weight:700;
+                   cursor:pointer;">
+        Instalar
+    </button>
+    <button id="install-dismiss"
+            aria-label="Cerrar"
+            style="position:absolute;
+                   right:12px;
+                   top:50%;
+                   transform:translateY(-50%);
+                   background:transparent;
+                   border:none;
+                   color:#fff;
+                   font-size:1rem;
+                   cursor:pointer;
+                   opacity:0.8;
+                   line-height:1;">
+        <i class="fas fa-times"></i>
+    </button>
+</div>
+
+<!-- Banner de conectividad (PWA) — oculto por defecto, gestionado por site.js -->
+<div id="offline-banner"
+     role="alert"
+     aria-live="assertive"
+     aria-atomic="true"
+     style="display:none;
+            width:100%;
+            background:#b91c1c;
+            color:#fff;
+            text-align:center;
+            padding:7px 16px;
+            font-size:0.82rem;
+            font-weight:600;
+            letter-spacing:0.03em;
+            z-index:1050;
+            box-shadow:0 2px 4px rgba(0,0,0,0.25);">
+    <i class="fas fa-exclamation-circle" style="margin-right:6px;"></i>Sin conexión — el dashboard no puede cargar datos en este momento
+</div>
+
+@if (isLoggedIn)
+{
+  <!-- MENÚ MÓVIL/TABLET OVERLAY -->
+  <nav id="mobile-menu" class="d-lg-none" role="navigation" aria-label="Menú de navegación móvil">
+    <div class="container-fluid py-3">
+      <div class="mobile-menu-section">
+        <div class="mobile-menu-header @(isDashboard ? "active-header" : "")">
+          <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+        </div>
+        
+        <a class="mobile-menu-item @(isDashboard ? "active" : "")" href="/Dashboard">
+          <i class="fas fa-tachometer-alt"></i>
+          <span>Dashboard</span>
+        </a>
+      </div>
+
+      <div class="mobile-menu-login">
+        <a class="mobile-menu-item" href="/Logout">
+          <i class="fas fa-sign-out-alt"></i>
+          <span>Cerrar Sesión</span>
+        </a>
+      </div>
+    </div>
+  </nav>
+}
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const menuToggle = document.getElementById('menu-toggle');
+  const mobileMenu = document.getElementById('mobile-menu');
+  
+  if (!menuToggle || !mobileMenu) return;
+
+  let isMenuOpen = false;
+
+  const openMenu = () => {
+    isMenuOpen = true;
+    mobileMenu.classList.add('active');
+    menuToggle.classList.add('active');
+    menuToggle.querySelector('i').classList.replace('fa-bars', 'fa-times');
+    menuToggle.setAttribute('aria-expanded', 'true');
+    document.body.style.overflow = 'hidden';
+  };
+
+  const closeMenu = () => {
+    isMenuOpen = false;
+    mobileMenu.classList.remove('active');
+    menuToggle.classList.remove('active');
+    menuToggle.querySelector('i').classList.replace('fa-times', 'fa-bars');
+    menuToggle.setAttribute('aria-expanded', 'false');
+    document.body.style.overflow = '';
+  };
+
+  menuToggle.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (isMenuOpen) { closeMenu(); } else { openMenu(); }
+  });
+
+  mobileMenu.querySelectorAll('a').forEach(link => {
+    link.addEventListener('click', () => setTimeout(closeMenu, 100));
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && isMenuOpen) closeMenu();
+  });
+
+  window.addEventListener('resize', () => {
+    if (window.innerWidth >= 1025 && isMenuOpen) closeMenu();
+  });
+
+  document.addEventListener('click', (e) => {
+    if (isMenuOpen && !mobileMenu.contains(e.target) && !menuToggle.contains(e.target)) {
+      closeMenu();
+    }
+  });
+});
+</script>
